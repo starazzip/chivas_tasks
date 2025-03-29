@@ -1,0 +1,28 @@
+我正在實作一個行事曆程序，目前已經有添加活動以及刪除活動的功能。
+然而我遇到一個問題，有時候在我刪除活動後，我又反悔，想要復原卻沒有辦法。
+請你幫我使用 Python 用兩種不同的實作改寫我下方提供的程式碼，幫我添加「撤回」和「重做」。
+「撤回」代表恢復上一個動作之前的狀態，若無上一個動作則不執行任何動作；
+「重做」代表恢復一個撤回動作的狀態，若無撤回動作則不執行任何動作。
+最後給我一個使用範例，動作為添加活動「蜜月」與「面試」後撤回兩次再重做一次。
+
+```python
+class Calendar:
+    def __init__(self):
+        self.events = {}
+
+    def add_event(self, date, title):
+        self.events[date] = title
+        print(f"新增活動：{date} - {title}")
+
+    def remove_event(self, date):
+        if date in self.events:
+            removed = self.events.pop(date)
+            print(f"移除活動：{date} - {removed}")
+        else:
+            print("找不到該日期的活動")
+
+    def show(self):
+        print("目前活動：", self.events)
+
+
+```
