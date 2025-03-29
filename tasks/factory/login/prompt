@@ -1,0 +1,14 @@
+公司的產品需要支援多管道登入，目前只有帳號密碼登入．
+我希望你能夠幫幫我，產品要求要有「Google登入」「FB登入」和「Github登入」。
+請你使用 Python 用兩種不同的實作幫助我讓程式碼變得比較容易維護。
+以下是我目前的程式碼，請以這份程式碼修改，請使用 print 簡化不重要的三方登入細節。
+最後提供給我一個每一種登入方式的範例。
+
+```python
+class LoginManager:
+    def login(self, username, password):
+        print("密碼雜湊")
+        print("後端驗證")
+        print("驗證成功")
+        print("登入成功")
+```
