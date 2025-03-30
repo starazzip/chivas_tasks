@@ -1,32 +1,137 @@
-
 # 問題總結
 
 ## 目標
 
 使用 Python 以兩種不同的實作，幫使用者現有的程式碼添加撤回及重做功能。
 
-
-* 輸入：
-  * 使用者提供的程式碼
-* 輸出：
-  * 添加「撤回」與「重做」功能的程式碼。
-  * 動作為添加活動「蜜月」與「面試」後撤回兩次再重做一次。
+## 輸入： 
+* 使用者提供的程式碼 
+## 輸出： 
+* 添加「撤回」與「重做」功能的程式碼。 
+* 使用範例：添加活動「蜜月」與活動「面試」後，撤回兩次，再重做一次。
 
 ## 限制條件
-* 「撤回」代表恢復上一個動作之前的狀態，若無上一個動作則不執行任何動作。
-* 「重做」代表恢復一個撤回動作的狀態，若無撤回動作則不執行任何動作。
-*  提供符合使用者要求的範例
+* 「撤回」執行恢復上一個動作之前的狀態，若無上一個動作則不執行任何動作。
+* 「重做」執行恢復一個撤回動作的狀態，若無撤回動作則不執行任何動作。
+*  提供符合使用者要求的範例。
 ---
 # 實作一：使用命令模式（Command）實作
 ## 方法概述：透過將每個動作封裝成一個個命令，讓撤回與重做更容易實作，也使後續擴充更容易。
 **優點**
-* 符合開閉原則：將每個動作封裝在各別類別，更容易後續功能擴充。
-* 可測試性高：利於單元測試。
+* 符合開閉原則：將每個動作封裝在個別類別，後續功能擴充比較容易。
+* 可測試性高：符合單一職責原則，利於單元測試。
 
 **缺點**
 * 程式門檻高：類別多，複雜度高。
+
 ```python
+from abc import ABC
+
+# 定義命令的抽象類別，規範子類應該實作的方法
+class Command(ABC):
+    def execute(self): pass
+    def undo(self): pass
+
+# 添加活動命令類別
+class AddEventCommand(Command):
+    def __init__(self, calendar, date, title):
+        self.calendar = calendar
+        self.date = date
+        self.title = title
+
+    # 執行添加方法
+    def execute(self):
+        self.calendar.events[self.date] = self.title
+        print(f"新增：{self.date} - {self.title}")
+
+    # 撤回添加方法
+    def undo(self):
+        self.calendar.events.pop(self.date, None)
+        print(f"撤回新增：{self.date}") 
+
+# 移除活動命令類別
+class RemoveEventCommand(Command):
+    def __init__(self, calendar, date):
+        self.calendar = calendar
+        self.date = date
+        self.removed = None
+
+    # 執行移除方法
+    def execute(self):
+        self.removed = self.calendar.events.pop(self.date, None)
+        print(f"移除：{self.date}")
+
+    # 撤回移除動作
+    def undo(self):
+        if self.removed:
+            self.calendar.events[self.date] = self.removed
+            print(f"撤回移除：{self.date} - {self.removed}") 
+
+# 行事曆類別
+class Calendar:
+    def __init__(self):
+        self.events = {}
+        self.history = []
+        self.redo_stack = []
+
+    # 專注於執行命令，不需要管命令邏輯
+    def execute(self, command):
+        command.execute()
+        self.history.append(command)
+        self.redo_stack.clear()
+
+    # 專注撤回行命令
+    def undo(self):
+        if self.history:
+            cmd = self.history.pop()
+            cmd.undo()
+            
+            # 有撤回才會有撤回列表
+            self.redo_stack.append(cmd)
+        else:
+            print("無動作可撤回") 
+
+    # 重做就是將撤回列表取出執行
+    def redo(self):
+        if self.redo_stack:
+            cmd = self.redo_stack.pop()
+            cmd.execute()
+            self.history.append(cmd)
+        else:
+            print("無動作可重做")
+
+    def show(self):
+        print("目前活動：", self.events)
+
+if __name__=="__main__":
+    # 測試操作流程
+    
+    calendar = Calendar()
+
+    # 添加蜜月
+    cmd1 = AddEventCommand(calendar, "2025-05-01", "蜜月")
+    calendar.execute(cmd1)
+    calendar.show()
+    # 添加面試
+    cmd2 = AddEventCommand(calendar, "2025-05-03", "面試")
+    calendar.execute(cmd2)
+    calendar.show()
+    
+    # 撤回面試
+    calendar.undo()
+    calendar.show()
+    
+    # 撤回蜜月
+    calendar.undo()
+    calendar.show()
+    
+    # 重做蜜月 
+    calendar.redo()
+
+    # 顯示最後結果
+    calendar.show()
 ```
+ ---
 
 # 實作二：使用一般的方法實作
 ## 方法概述：透過紀錄操作類型與參數的方式，在主流程中處理撤回與重做邏輯。
@@ -37,4 +142,98 @@
 * 可測試性低：所有流程在同一個地方，難以測試。
 * 可擴充性低：隨著功能擴充會有多個if-else邏輯。
 ```python
+class Calendar:
+    def __init__(self):
+        # 用來儲存日期與活動名稱的字典
+        self.events = {}
+        # 執行紀錄，需將每個命令存在堆疊裡
+        self.history = []
+        # 撤回紀錄，需將每個撤回命令存在堆疊裡
+        self.redo_stack = []
+
+    # 新增活動方法 
+    def add_event(self, date, title):        
+        self.events[date] = title
+        # 紀錄命令
+        self.history.append(("add", date, title))
+        # 有新命令就將撤回紀錄清空
+        self.redo_stack.clear()
+        print(f"新增：{date} - {title}")
+
+    # 移除活動
+    def remove_event(self, date):
+        if date in self.events:
+            removed = self.events.pop(date)
+            self.history.append(("remove", date, removed))
+            self.redo_stack.clear()
+            print(f"移除：{date} - {removed}")
+        else:
+            print("無此活動")
+
+    # 撤回方法
+    def undo(self):
+        # 如果沒有執行紀錄則無法撤回
+        if not self.history:
+            print("無動作可撤回")
+            return
+        # 取出最後一筆執行紀錄
+        action, date, title = self.history.pop()
+        
+        # 根據指令內容掉用對應方法
+        if action == "add":
+            self.events.pop(date, None)
+            print(f"撤回新增：{date}")
+        elif action == "remove":
+            self.events[date] = title
+            print(f"撤回移除：{date} - {title}")
+        # 將撤回的動作放入重做堆疊中
+        self.redo_stack.append((action, date, title))
+
+    # 重做方法
+    def redo(self):
+        # 如果重做堆疊為空則無法重做
+        if not self.redo_stack:
+            print("無動作可重做")
+            return
+        # 取出最後一個被撤回的動作 
+        action, date, title = self.redo_stack.pop()
+        if action == "add":
+            self.events[date] = title
+            print(f"重做新增：{date} - {title}")
+        elif action == "remove":
+            self.events.pop(date, None)
+            print(f"重做移除：{date}")
+        # 重做完後，動作重新放進執行堆疊中
+        self.history.append((action, date, title))
+
+    def show(self):
+        print("目前活動：", self.events)
+
+
+if __name__ == "__main__":
+    # 測試操作流程
+        
+    calendar = Calendar()
+
+    # 添加蜜月
+    calendar.add_event("2025-05-01", "蜜月")
+    calendar.show()
+
+    # 添加面試
+    calendar.add_event("2025-05-03", "面試")
+    calendar.show()
+
+    # 撤回面試
+    calendar.undo()
+    calendar.show()
+    
+    # 撤回蜜月
+    calendar.undo()
+    calendar.show()
+    
+    # 重做蜜月
+    calendar.redo()
+
+    # 顯示最後結果
+    calendar.show()
 ```

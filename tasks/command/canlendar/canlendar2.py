@@ -1,15 +1,22 @@
-class CalendarWithHistory:
+class Calendar:
     def __init__(self):
+        # 用來儲存日期與活動名稱的字典
         self.events = {}
-        self.history = []        # list of (action, data)
+        # 執行紀錄，需將每個命令存在堆疊裡
+        self.history = []
+        # 撤回紀錄，需將每個撤回命令存在堆疊裡
         self.redo_stack = []
 
-    def add_event(self, date, title):
+    # 新增活動方法 
+    def add_event(self, date, title):        
         self.events[date] = title
+        # 紀錄命令
         self.history.append(("add", date, title))
+        # 有新命令就將撤回紀錄清空
         self.redo_stack.clear()
         print(f"新增：{date} - {title}")
 
+    # 移除活動
     def remove_event(self, date):
         if date in self.events:
             removed = self.events.pop(date)
@@ -19,23 +26,32 @@ class CalendarWithHistory:
         else:
             print("無此活動")
 
+    # 撤回方法
     def undo(self):
+        # 如果沒有執行紀錄則無法撤回
         if not self.history:
-            print("無動作可撤銷")
+            print("無動作可撤回")
             return
+        # 取出最後一筆執行紀錄
         action, date, title = self.history.pop()
+        
+        # 根據指令內容掉用對應方法
         if action == "add":
             self.events.pop(date, None)
-            print(f"↩撤銷新增：{date}")
+            print(f"撤回新增：{date}")
         elif action == "remove":
             self.events[date] = title
-            print(f"↩撤銷移除：{date} - {title}")
+            print(f"撤回移除：{date} - {title}")
+        # 將撤回的動作放入重做堆疊中
         self.redo_stack.append((action, date, title))
 
+    # 重做方法
     def redo(self):
+        # 如果重做堆疊為空則無法重做
         if not self.redo_stack:
             print("無動作可重做")
             return
+        # 取出最後一個被撤回的動作 
         action, date, title = self.redo_stack.pop()
         if action == "add":
             self.events[date] = title
@@ -43,31 +59,36 @@ class CalendarWithHistory:
         elif action == "remove":
             self.events.pop(date, None)
             print(f"重做移除：{date}")
+        # 重做完後，動作重新放進執行堆疊中
         self.history.append((action, date, title))
 
     def show(self):
         print("目前活動：", self.events)
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
+    # 測試操作流程
+        
+    calendar = Calendar()
 
-    # 操作範例：新增蜜月 → 新增面試 → Undo 兩次 → Redo 一次
-    cal = CalendarWithHistory()
+    # 添加蜜月
+    calendar.add_event("2025-05-01", "蜜月")
+    calendar.show()
 
-    # 1. 新增「蜜月」
-    cal.add_event("2025-05-01", "蜜月")
-    cal.show()
-    # 2. 新增「面試」
-    cal.add_event("2025-05-03", "面試")
-    cal.show()
-    # 3. Undo（撤銷面試）
-    cal.undo()
-    cal.show()
-    # 4. Undo（撤銷蜜月）
-    cal.undo()
-    cal.show()
-    # 5. Redo（重做蜜月）
-    cal.redo()
-    cal.show()
-    # 顯示當前活動
-    cal.show()
+    # 添加面試
+    calendar.add_event("2025-05-03", "面試")
+    calendar.show()
+
+    # 撤回面試
+    calendar.undo()
+    calendar.show()
+    
+    # 撤回蜜月
+    calendar.undo()
+    calendar.show()
+    
+    # 重做蜜月
+    calendar.redo()
+
+    # 顯示最後結果
+    calendar.show()
